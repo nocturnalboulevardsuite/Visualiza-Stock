@@ -13,71 +13,71 @@ except ImportError:
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Reponedor Rush - Supermarket Simulator HUD",
+    page_title="Reponedor Rush - Supermarket Simulator 3D",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 # ---------------------------------------------------------
-# COMPONENTES VISUALES EN SVG AUTO-CONTENIDOS
+# GENERADOR SVG AUTO-CONTENIDO (ESTANTERÍA Y CAJAS 3D)
 # ---------------------------------------------------------
-def render_shelf_boxes_svg(stock_pct, store_type):
-    """Renderiza visualmente cajas apiladas en la estantería según el % de stock."""
-    # Colores según la tienda
-    if store_type == "mecánica":
-        color_full, color_side = "#d97706", "#92400e" # Naranja Mecánico
-    elif store_type == "tecnología":
-        color_full, color_side = "#2563eb", "#1e40af" # Azul Neón Tech
-    else: # carpintería
-        color_full, color_side = "#854d0e", "#533107" # Madera Carpintería
+def get_shelf_box_svg(stock_pct, store_type):
+    """Genera una estantería con cajas apiladas en 3D (SVG 100% válido)."""
+    # Colores por tipo de tienda
+    if store_type == "Mecánica":
+        color_top, color_side, color_front = "#f97316", "#c2410c", "#ea580c" # Naranja Mecánico
+        bg_shelf = "#1e140a"
+    elif store_type == "Tecnología":
+        color_top, color_side, color_front = "#38bdf8", "#0284c7", "#0369a1" # Azul Neón Tech
+        bg_shelf = "#081d2c"
+    else: # Carpintería
+        color_top, color_side, color_front = "#eab308", "#a16207", "#ca8a04" # Madera Rústica
+        bg_shelf = "#1d1508"
 
-    # Si no hay stock, mostrar estante vacío con icono de alerta
+    # Estante Vacío
     if stock_pct <= 0:
         return """
-        <svg width="100%" height="110" viewBox="0 0 160 110" style="background: rgba(0,0,0,0.2); border-radius: 8px;">
-            <rect x="10" y="95" width="140" height="8" fill="#334155"/>
-            <text x="80" y="55" font-size="28" text-anchor="middle" fill="#f56565">⚠️</text>
-            <text x="80" y="80" font-size="11" font-weight="bold" text-anchor="middle" fill="#feb2b2">ESTANTE VACÍO</text>
+        <svg width="100%" height="110" viewBox="0 0 160 110" style="background: rgba(0,0,0,0.3); border-radius: 8px;">
+            <rect x="10" y="95" width="140" height="8" fill="#475569" rx="2"/>
+            <text x="80" y="50" font-size="28" text-anchor="middle" fill="#ef4444">⚠️</text>
+            <text x="80" y="75" font-size="11" font-weight="800" text-anchor="middle" fill="#fca5a5" letter-spacing="1">ESTANTE VACÍO</text>
         </svg>
         """
 
-    # Determinar cuántas cajas mostrar (de 1 a 4 cajas apiladas)
+    # Número de cajas apiladas según el % de stock
     box_count = 1
     if stock_pct > 75: box_count = 4
     elif stock_pct > 50: box_count = 3
     elif stock_pct > 25: box_count = 2
 
-    # Dibujar cajas apiladas en 3D
-    boxes_svg = ""
-    positions = [(20, 50), (85, 50), (52, 20), (85, 20)]
+    positions = [(20, 48), (85, 48), (52, 18), (85, 18)]
+    boxes_xml = ""
     for i in range(box_count):
         x, y = positions[i]
-        boxes_svg += f"""
+        boxes_xml += f"""
         <g transform="translate({x}, {y})">
-            <polygon points="20,5 38,14 20,22 2,14" fill="{color_full}"/>
+            <polygon points="20,5 38,14 20,22 2,14" fill="{color_top}"/>
             <polygon points="2,14 20,22 20,40 2,32" fill="{color_side}"/>
-            <polygon points="20,22 38,14 38,32 20,40" fill="{color_full}" opacity="0.8"/>
-            <rect x="18" y="8" width="4" height="30" fill="#f8fafc" opacity="0.5"/>
+            <polygon points="20,22 38,14 38,32 20,40" fill="{color_front}"/>
+            <rect x="18" y="8" width="4" height="30" fill="#ffffff" opacity="0.35"/>
         </g>
         """
 
     return f"""
-    <svg width="100%" height="110" viewBox="0 0 160 110" style="background: rgba(0,0,0,0.15); border-radius: 8px;">
-        <!-- Tabla del Estante -->
+    <svg width="100%" height="110" viewBox="0 0 160 110" style="background: {bg_shelf}; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
         <rect x="5" y="92" width="150" height="10" rx="3" fill="#475569"/>
         <rect x="5" y="98" width="150" height="4" rx="1" fill="#1e293b"/>
-        <!-- Cajas dibujadas -->
-        {boxes_svg}
+        {boxes_xml}
     </svg>
     """
 
 # ---------------------------------------------------------
-# ESTADOS DEL JUEGO
+# ESTADO DEL JUEGO
 # ---------------------------------------------------------
 def reset_game():
     st.session_state.game_state = "PLAYING"
     st.session_state.current_store = "Mecánica"
-    st.session_state.global_timer = 300 # 5 minutos
+    st.session_state.global_timer = 300 # 5 Minutos
     st.session_state.start_time = time.time()
     st.session_state.last_tick = time.time()
     st.session_state.active_alert = None
@@ -96,7 +96,7 @@ def reset_game():
             {"id": 203, "nombre": "Monitor Gamer 240Hz", "stock": 75, "speed": 3.4},
         ],
         "Carpintería": [
-            {"id": 301, "nombre": "Disco de Sierra 12 pulgadas", "stock": 95, "speed": 3.0},
+            {"id": 301, "nombre": "Disco de Sierra 12''", "stock": 95, "speed": 3.0},
             {"id": 302, "nombre": "Taladro Inalámbrico", "stock": 60, "speed": 4.3},
             {"id": 303, "nombre": "Barniz Mate Roble", "stock": 80, "speed": 3.7},
         ]
@@ -106,7 +106,7 @@ if "game_state" not in st.session_state:
     st.session_state.game_state = "MENU"
 
 # ---------------------------------------------------------
-# INYECCIÓN DINÁMICA DE ESTILOS Y FONDOS SEGÚN TIENDA
+# ESTILOS DINÁMICOS POR TIENDA
 # ---------------------------------------------------------
 store_bg = "#0b0d12"
 accent_color = "#6366f1"
@@ -114,13 +114,13 @@ accent_color = "#6366f1"
 if st.session_state.get("game_state") == "PLAYING":
     curr = st.session_state.get("current_store", "Mecánica")
     if curr == "Mecánica":
-        store_bg = "linear-gradient(135deg, #18110c 0%, #0d0f14 100%)" # Taller Tono Garaje
+        store_bg = "linear-gradient(135deg, #18110c 0%, #0d0f14 100%)"
         accent_color = "#f97316"
     elif curr == "Tecnología":
-        store_bg = "linear-gradient(135deg, #091322 0%, #05070c 100%)" # Cyberpunk Neón
-        accent_color = "#06b6d4"
-    else: # Carpintería
-        store_bg = "linear-gradient(135deg, #1c130b 0%, #0c0805 100%)" # Madera Rústica
+        store_bg = "linear-gradient(135deg, #091322 0%, #05070c 100%)"
+        accent_color = "#38bdf8"
+    else:
+        store_bg = "linear-gradient(135deg, #1c130b 0%, #0c0805 100%)"
         accent_color = "#eab308"
 
 st.markdown(f"""
@@ -133,7 +133,7 @@ st.markdown(f"""
 
     #MainMenu, header, footer {{visibility: hidden;}}
 
-    /* Botones Estilo Game / Bounce */
+    /* Botones Burbuja Bounce */
     div.stButton > button {{
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         color: #f8fafc;
@@ -163,30 +163,20 @@ st.markdown(f"""
     /* Banner Alerta Crítica (30s Replica) */
     .emergency-banner {{
         background: linear-gradient(90deg, #742a2a 0%, #9b2c2c 50%, #742a2a 100%);
-        border: 2px solid #f56565;
+        border: 2px solid #ef4444;
         border-radius: 12px;
         padding: 12px 20px;
         margin-bottom: 18px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        box-shadow: 0 0 20px rgba(245, 101, 101, 0.5);
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
         animation: pulseAlert 1s infinite alternate;
     }}
 
     @keyframes pulseAlert {{
-        from {{ box-shadow: 0 0 10px rgba(245, 101, 101, 0.3); }}
-        to {{ box-shadow: 0 0 25px rgba(245, 101, 101, 0.8); }}
-    }}
-
-    /* Estanterías */
-    .shelf-card {{
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid #1e293b;
-        border-radius: 14px;
-        padding: 16px;
-        text-align: center;
-        backdrop-filter: blur(8px);
+        from {{ box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }}
+        to {{ box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }}
     }}
 
     .hud-box {{
@@ -234,17 +224,17 @@ elif st.session_state.game_state in ["GAMEOVER", "WIN"]:
     with c2:
         if st.session_state.game_state == "GAMEOVER":
             st.markdown(f"""
-            <div style='background: #1c1010; padding: 35px; border-radius: 20px; border: 2px solid #f56565; text-align: center;'>
-                <h1 style='color:#f56565; margin:0; font-size:28px;'>TE HAS QUEDADO SIN STOCK</h1>
-                <p style='color:#feb2b2; font-size:14px; margin-top:10px;'>{st.session_state.fail_reason}</p>
+            <div style='background: #1c1010; padding: 35px; border-radius: 20px; border: 2px solid #ef4444; text-align: center;'>
+                <h1 style='color:#ef4444; margin:0; font-size:28px;'>TE HAS QUEDADO SIN STOCK</h1>
+                <p style='color:#fca5a5; font-size:14px; margin-top:10px;'>{st.session_state.fail_reason}</p>
                 <h3 style='color:#fff; margin-top:15px;'>Puntaje Final: {st.session_state.score} PTS</h3>
             </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
-            <div style='background: #0f291e; padding: 35px; border-radius: 20px; border: 2px solid #48bb78; text-align: center;'>
-                <h1 style='color:#48bb78; margin:0; font-size:28px;'>¡TURNO COMPLETADO CON ÉXITO!</h1>
-                <p style='color:#c6f6d5; font-size:14px; margin-top:10px;'>Mantuviste reabastecidos los 3 sectores del almacén.</p>
+            <div style='background: #0f291e; padding: 35px; border-radius: 20px; border: 2px solid #22c55e; text-align: center;'>
+                <h1 style='color:#22c55e; margin:0; font-size:28px;'>¡TURNO COMPLETADO CON ÉXITO!</h1>
+                <p style='color:#bbf7d0; font-size:14px; margin-top:10px;'>Mantuviste reabastecidos los 3 sectores del almacén.</p>
                 <h3 style='color:#fff; margin-top:15px;'>Puntaje Final: {st.session_state.score} PTS</h3>
             </div>
             """, unsafe_allow_html=True)
@@ -263,7 +253,7 @@ else:
     dt = now - st.session_state.last_tick
     st.session_state.last_tick = now
 
-    # 1. Desgaste continuo de productos
+    # 1. Consumo continuo de stock
     for store_name, items in st.session_state.inventario.items():
         for item in items:
             item["stock"] = max(0.0, item["stock"] - (item["speed"] * dt * 1.2))
@@ -277,10 +267,9 @@ else:
                     "deadline": time.time() + 30.0
                 }
 
-    # 2. Control de Alerta Activa
+    # 2. Control de Alerta
     if st.session_state.active_alert is not None:
         time_left_alert = st.session_state.active_alert["deadline"] - time.time()
-        
         alert_store = st.session_state.active_alert["store"]
         alert_id = st.session_state.active_alert["item_id"]
         target_item = next(x for x in st.session_state.inventario[alert_store] if x["id"] == alert_id)
@@ -315,7 +304,7 @@ else:
         st.markdown(f"""
         <div class='hud-box'>
             <span style='color:#94a3b8; font-size:11px; font-weight:800;'>PUNTAJE REPONEDOR</span>
-            <div style='font-size:22px; font-weight:900; color:#48bb78;'>{st.session_state.score} PTS</div>
+            <div style='font-size:22px; font-weight:900; color:#22c55e;'>{st.session_state.score} PTS</div>
         </div>
         """, unsafe_allow_html=True)
     with h3:
@@ -334,12 +323,12 @@ else:
                 <strong style='color:#fff; font-size:15px;'>
                     ⚠️ ¡ALERTA URGENTE EN {st.session_state.active_alert['store'].upper()}!
                 </strong>
-                <div style='color:#feb2b2; font-size:12px; margin-top:2px;'>
+                <div style='color:#fca5a5; font-size:12px; margin-top:2px;'>
                     Estante vacío: {st.session_state.active_alert['item_name']}
                 </div>
             </div>
             <div style='text-align:right;'>
-                <span style='font-size:11px; color:#feb2b2; font-weight:800;'>TIEMPO RÉPLICA</span>
+                <span style='font-size:11px; color:#fca5a5; font-weight:800;'>TIEMPO RÉPLICA</span>
                 <div style='font-size:24px; font-weight:900; color:#fff;'>{t_alert}s</div>
             </div>
         </div>
@@ -365,50 +354,47 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- ENTORNO Y ESTANTERÍAS DE LA TIENDA ACTUAL ---
-    current_items = st.session_state.inventario[st.session_state.current_store]
-    
+    # --- CABECERA DE LA TIENDA ACTUAL ---
     st.markdown(f"""
-    <div style='background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 16px; padding: 20px;'>
-        <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #1e293b; padding-bottom:10px;'>
-            <span style='font-weight:900; color:#f8fafc; font-size:16px; letter-spacing:1px;'>
-                SECTOR ACTUAL: {st.session_state.current_store.upper()}
-            </span>
-            <span style='font-size:12px; color:#818cf8; font-weight:700;'>3 ESTANTES ACTIVOS</span>
-        </div>
+    <div style='background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 12px; padding: 12px 20px; margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center;'>
+        <span style='font-weight:900; color:#f8fafc; font-size:15px; letter-spacing:1px;'>
+            SECTOR ACTUAL: {st.session_state.current_store.upper()}
+        </span>
+        <span style='font-size:12px; color:#818cf8; font-weight:800;'>3 ESTANTES EN VIVO</span>
+    </div>
     """, unsafe_allow_html=True)
 
+    # --- ESTANTERÍAS DE PRODUCTOS ---
+    current_items = st.session_state.inventario[st.session_state.current_store]
     cols = st.columns(len(current_items))
 
     for idx, item in enumerate(current_items):
         with cols[idx]:
             st_val = int(item["stock"])
-            svg_shelf = render_shelf_boxes_svg(st_val, st.session_state.current_store.lower())
+            svg_shelf = get_shelf_box_svg(st_val, st.session_state.current_store)
 
-            # Cada tarjeta de producto es auto-contenida (sin HTML roto)
+            # Tarjeta de producto 100% autocontenida
             st.markdown(f"""
-            <div class='shelf-card'>
+            <div style='background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 14px; padding: 16px; text-align: center; backdrop-filter: blur(8px);'>
                 <div style='font-size:11px; font-weight:800; color:#818cf8;'>ID #{item['id']}</div>
                 <div style='margin: 10px 0;'>
                     {svg_shelf}
                 </div>
-                <div style='font-weight:800; font-size:14px; color:#f8fafc; margin-top:6px;'>{item['nombre']}</div>
+                <div style='font-weight:800; font-size:14px; color:#f8fafc;'>{item['nombre']}</div>
                 <div style='font-size:12px; color:#94a3b8; margin-top:4px;'>
-                    STOCK ESTANTE: <strong style='color:{"#f56565" if st_val < 25 else "#48bb78"};'>{st_val}%</strong>
+                    STOCK ESTANTE: <strong style='color:{"#ef4444" if st_val < 25 else "#22c55e"};'>{st_val}%</strong>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
 
-            # Botón de acción para reponer el producto
+            # Botón interactivo de reposición
             if st.button(f"REPONER ESTANTE (+40%)", key=f"btn_repon_{item['id']}"):
                 item["stock"] = min(100.0, item["stock"] + 40.0)
                 st.session_state.score += 20
                 st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Actualización automática fluida
+    # Actualización automática fluida cada 0.4s
     time.sleep(0.4)
     st.rerun()
