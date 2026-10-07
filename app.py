@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+import textwrap
 
 # Intentar cargar opción de menú moderno
 try:
@@ -17,50 +18,45 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ---------------------------------------------------------
-# LIMPIADOR HTML (EVITA BUGS Y DUPLICACIONES EN STREAMLIT)
-# ---------------------------------------------------------
+# Helper para limpiar HTML
 def clean_html(s: str) -> str:
-    """Elimina saltos de línea y sangrías para evitar que Streamlit lo interprete como código plano."""
     return " ".join(s.split())
 
 # ---------------------------------------------------------
-# GENERADOR SVG DE ESTANTERÍAS E ITEMS REALISTAS POR TIENDA
+# GENERADOR SVG TEMÁTICO DE ESTANTERÍAS Y CAJAS 3D
 # ---------------------------------------------------------
-def get_shelf_svg(stock_pct: int, store_type: str, item_name: str) -> str:
-    """Genera gráficos vectoriales inmersivos de cajas y estantes según el sector."""
-    
+def get_shelf_svg(stock_pct: int, store_type: str) -> str:
+    """Genera gráficos vectoriales inmersivos específicos para cada sector."""
     if stock_pct <= 0:
         raw_svg = """
-        <svg width="100%" height="110" viewBox="0 0 160 110" style="background: rgba(15, 23, 42, 0.8); border-radius: 10px; border: 1px solid #ef4444;">
-            <rect x="10" y="94" width="140" height="8" fill="#475569" rx="2"/>
-            <text x="80" y="52" font-size="28" text-anchor="middle" fill="#ef4444">⚠️</text>
-            <text x="80" y="78" font-size="11" font-weight="900" text-anchor="middle" fill="#fca5a5" letter-spacing="1">SIN STOCK EN ESTANTE</text>
+        <svg width="100%" height="120" viewBox="0 0 160 120" style="background: rgba(15, 23, 42, 0.85); border-radius: 8px;">
+            <rect x="10" y="102" width="140" height="8" fill="#475569" rx="2"/>
+            <text x="80" y="55" font-size="28" text-anchor="middle" fill="#ef4444">⚠️</text>
+            <text x="80" y="82" font-size="11" font-weight="900" text-anchor="middle" fill="#fca5a5" letter-spacing="1">ESTANTE VACÍO</text>
         </svg>
         """
         return clean_html(raw_svg)
 
-    # Cantidad de cajas apiladas según nivel de stock
     box_count = 1
     if stock_pct > 75: box_count = 4
     elif stock_pct > 50: box_count = 3
     elif stock_pct > 25: box_count = 2
 
-    # Paletas de color por tipo de tienda
+    # Colores e identidad visual por tienda
     if store_type == "Mecánica":
         bg_shelf = "linear-gradient(180deg, #1c130d 0%, #0d0805 100%)"
-        c_top, c_side, c_front = "#f97316", "#c2410c", "#ea580c" # Industrial Naranja
-        plank_color = "#334155"
+        c_top, c_side, c_front = "#f97316", "#c2410c", "#ea580c" # Naranja Taller
+        plank_color, border_color = "#475569", "#f97316"
     elif store_type == "Tecnología":
         bg_shelf = "linear-gradient(180deg, #061826 0%, #020b14 100%)"
-        c_top, c_side, c_front = "#38bdf8", "#0284c7", "#0369a1" # Neón Tech Azul
-        plank_color = "#0f172a"
+        c_top, c_side, c_front = "#38bdf8", "#0284c7", "#0369a1" # Neón Tech Cian
+        plank_color, border_color = "#0f172a", "#06b6d4"
     else: # Carpintería
         bg_shelf = "linear-gradient(180deg, #24170d 0%, #120a04 100%)"
         c_top, c_side, c_front = "#eab308", "#a16207", "#ca8a04" # Madera Ámbar
-        plank_color = "#78350f"
+        plank_color, border_color = "#78350f", "#d97706"
 
-    positions = [(18, 48), (85, 48), (50, 18), (85, 18)]
+    positions = [(18, 55), (85, 55), (50, 22), (85, 22)]
     boxes_xml = ""
     for i in range(box_count):
         x, y = positions[i]
@@ -74,9 +70,9 @@ def get_shelf_svg(stock_pct: int, store_type: str, item_name: str) -> str:
         """
 
     raw_svg = f"""
-    <svg width="100%" height="110" viewBox="0 0 160 110" style="background: {bg_shelf}; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
-        <rect x="5" y="92" width="150" height="10" rx="3" fill="{plank_color}"/>
-        <rect x="5" y="98" width="150" height="4" rx="1" fill="#090d16"/>
+    <svg width="100%" height="120" viewBox="0 0 160 120" style="background: {bg_shelf}; border-radius: 8px; border: 1px solid {border_color}40;">
+        <rect x="5" y="102" width="150" height="10" rx="3" fill="{plank_color}"/>
+        <rect x="5" y="108" width="150" height="4" rx="1" fill="#090d16"/>
         {boxes_xml}
     </svg>
     """
@@ -88,7 +84,7 @@ def get_shelf_svg(stock_pct: int, store_type: str, item_name: str) -> str:
 def reset_game():
     st.session_state.game_state = "PLAYING"
     st.session_state.current_store = "Mecánica"
-    st.session_state.global_timer = 300 # 5 Minutos (300 segundos)
+    st.session_state.global_timer = 300 # 5 Minutos (300s)
     st.session_state.start_time = time.time()
     st.session_state.last_tick = time.time()
     st.session_state.active_alert = None
@@ -97,8 +93,8 @@ def reset_game():
     
     st.session_state.inventario = {
         "Mecánica": [
-            {"id": 101, "nombre": "Filtro de Aceite Sintético", "stock": 90, "speed": 3.2},
-            {"id": 102, "nombre": "Pastillas de Freno Cerámicas", "stock": 70, "speed": 4.1},
+            {"id": 101, "nombre": "Filtro Aceite Sintético", "stock": 90, "speed": 3.2},
+            {"id": 102, "nombre": "Pastillas Freno Cerámica", "stock": 70, "speed": 4.1},
             {"id": 103, "nombre": "Batería 12V High-Power", "stock": 85, "speed": 2.9},
         ],
         "Tecnología": [
@@ -117,41 +113,41 @@ if "game_state" not in st.session_state:
     st.session_state.game_state = "MENU"
 
 # ---------------------------------------------------------
-# ENTORNOS E INTERIORES INMERSIVOS EN CSS (SEGUN SECTOR)
+# ESTILOS DINÁMICOS POR TIENDA (INTERIORES REALISTAS)
 # ---------------------------------------------------------
 current_store = st.session_state.get("current_store", "Mecánica")
 
 if current_store == "Mecánica":
-    # Interior Taller Mecánico: Paredes de metal, engranajes, luces naranjas de trabajo
+    # Taller Mecánico Industrial: Paredes metálicas, resplandor naranja y rejilla
     store_bg_css = """
-        background-color: #0d0f14;
+        background-color: #0c0e12;
         background-image: 
-            radial-gradient(circle at 10% 20%, rgba(249, 115, 22, 0.15) 0%, transparent 40%),
-            radial-gradient(circle at 90% 80%, rgba(234, 88, 12, 0.1) 0%, transparent 40%),
-            linear-gradient(rgba(13, 15, 20, 0.92), rgba(13, 15, 20, 0.96)),
-            url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l15 30H15z' fill='%23f97316' fill-opacity='0.03'/%3E%3C/svg%3E");
+            radial-gradient(circle at 15% 20%, rgba(249, 115, 22, 0.2) 0%, transparent 45%),
+            radial-gradient(circle at 85% 80%, rgba(234, 88, 12, 0.12) 0%, transparent 40%),
+            linear-gradient(rgba(12, 14, 18, 0.93), rgba(12, 14, 18, 0.97)),
+            url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M0 20h40M20 0v40' stroke='%23f97316' stroke-width='0.5' stroke-opacity='0.08'/%3E%3C/svg%3E");
     """
     accent_color = "#f97316"
 elif current_store == "Tecnología":
-    # Interior PC Hardware: Placa base / PCB, neón cian/azul cibernético
+    # Interior Hardware PC: Placa Base (PCB) con trazos de circuito e iluminación neón
     store_bg_css = """
-        background-color: #030712;
+        background-color: #020617;
         background-image: 
-            radial-gradient(circle at 50% 10%, rgba(6, 182, 212, 0.2) 0%, transparent 50%),
-            radial-gradient(circle at 80% 90%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
-            linear-gradient(rgba(3, 7, 18, 0.92), rgba(3, 7, 18, 0.96)),
-            url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20h40M20 0v40' stroke='%2306b6d4' stroke-width='1' stroke-opacity='0.05'/%3E%3C/svg%3E");
+            radial-gradient(circle at 50% 15%, rgba(6, 182, 212, 0.25) 0%, transparent 50%),
+            radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.18) 0%, transparent 45%),
+            linear-gradient(rgba(2, 6, 23, 0.92), rgba(2, 6, 23, 0.96)),
+            url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10h40v40H10z' fill='none' stroke='%2306b6d4' stroke-width='0.8' stroke-opacity='0.1'/%3E%3Ccircle cx='10' cy='10' r='2' fill='%2306b6d4' fill-opacity='0.2'/%3E%3C/svg%3E");
     """
     accent_color = "#06b6d4"
 else:
-    # Interior Taller Carpintería: Vetas de madera de roble, luz cálida de ebanistería
+    # Taller Carpintería: Vetas de madera roble, resplandor cálido de almacén
     store_bg_css = """
         background-color: #0f0a06;
         background-image: 
-            radial-gradient(circle at 20% 80%, rgba(217, 119, 6, 0.18) 0%, transparent 45%),
-            radial-gradient(circle at 80% 20%, rgba(180, 83, 9, 0.12) 0%, transparent 40%),
+            radial-gradient(circle at 20% 80%, rgba(217, 119, 6, 0.2) 0%, transparent 45%),
+            radial-gradient(circle at 80% 20%, rgba(180, 83, 9, 0.15) 0%, transparent 40%),
             linear-gradient(rgba(15, 10, 6, 0.91), rgba(15, 10, 6, 0.96)),
-            url("data:image/svg+xml,%3Csvg width='80' height='20' viewBox='0 0 80 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10c20-5 60 5 80 0' stroke='%23d97706' stroke-width='1' stroke-opacity='0.05' fill='none'/%3E%3C/svg%3E");
+            url("data:image/svg+xml,%3Csvg width='80' height='20' viewBox='0 0 80 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10c20-5 60 5 80 0' stroke='%23d97706' stroke-width='1' stroke-opacity='0.08' fill='none'/%3E%3C/svg%3E");
     """
     accent_color = "#d97706"
 
@@ -165,31 +161,32 @@ st.markdown(clean_html(f"""
 
     #MainMenu, header, footer {{visibility: hidden;}}
 
-    /* Botones Interactivos Estilo Juego */
+    /* Botones Integrados */
     div.stButton > button {{
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         color: #f8fafc;
         border: 1px solid #334155;
-        border-radius: 10px;
-        padding: 10px 14px;
+        border-radius: 8px;
+        padding: 8px 12px;
         font-weight: 800;
-        font-size: 12px;
-        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        font-size: 11px;
+        transition: all 0.2s ease;
         width: 100%;
         cursor: pointer;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        margin-top: 4px;
     }}
 
     div.stButton > button:hover {{
-        transform: translateY(-2px) scale(1.02);
+        background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
         border-color: {accent_color};
         color: #ffffff;
-        box-shadow: 0 6px 18px {accent_color}50;
+        box-shadow: 0 4px 12px {accent_color}40;
     }}
 
-    div.stButton > button:active {{
-        transform: translateY(1px) scale(0.98);
+    /* Contenedor Nativo Ajustado */
+    [data-testid="stMetricValue"] {{
+        font-size: 20px;
     }}
 
     .emergency-banner {{
@@ -210,7 +207,6 @@ st.markdown(clean_html(f"""
         padding: 10px 16px;
         border-radius: 10px;
         text-align: center;
-        backdrop-filter: blur(8px);
     }}
 </style>
 """), unsafe_allow_html=True)
@@ -223,7 +219,7 @@ if st.session_state.game_state == "MENU":
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         st.markdown(clean_html("""
-        <div style='background: rgba(15, 23, 42, 0.9); padding: 35px; border-radius: 20px; border: 1px solid #334155; text-align: center;'>
+        <div style='background: rgba(15, 23, 42, 0.95); padding: 35px; border-radius: 20px; border: 1px solid #334155; text-align: center;'>
             <span style='background:#312e81; color:#c7d2fe; font-size:11px; font-weight:800; padding:4px 10px; border-radius:6px;'>SIMULADOR DE ALMACÉN</span>
             <h1 style='color:#ffffff; margin:12px 0 0 0; font-size:30px;'>REPONEDOR RUSH 3D</h1>
             <p style='color:#94a3b8; font-size:14px; margin-top:6px;'>Estilo Supermarket Simulator</p>
@@ -279,12 +275,12 @@ else:
     dt = now - st.session_state.last_tick
     st.session_state.last_tick = now
 
-    # 1. Consumo continuo de stock en simultáneo
+    # 1. Consumo continuo de stock
     for store_name, items in st.session_state.inventario.items():
         for item in items:
             item["stock"] = max(0.0, item["stock"] - (item["speed"] * dt * 1.2))
 
-            # Activar Alerta Crítica si alguna caja llega a 0
+            # Activar Alerta Crítica
             if item["stock"] == 0 and st.session_state.active_alert is None:
                 st.session_state.active_alert = {
                     "store": store_name,
@@ -369,7 +365,7 @@ else:
             default_index=["Mecánica", "Tecnología", "Carpintería"].index(st.session_state.current_store),
             orientation="horizontal",
             styles={
-                "container": {"padding": "0!important", "background-color": "#0f172a", "border-radius": "12px"},
+                "container": {"padding": "0!important", "background-color": "rgba(15, 23, 42, 0.9)", "border-radius": "12px"},
                 "nav-link": {"font-size": "13px", "text-align": "center", "color": "#94a3b8", "font-weight": "800", "text-transform": "uppercase"},
                 "nav-link-selected": {"background-color": "#1e1b4b", "color": "#ffffff", "border-radius": "10px"},
             }
@@ -380,7 +376,7 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- CABECERA DE LA TIENDA ACTUAL ---
+    # --- CABECERA SECTOR ACTUAL ---
     st.markdown(clean_html(f"""
     <div style='background: rgba(15, 23, 42, 0.85); border: 1px solid #1e293b; border-radius: 12px; padding: 12px 20px; margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center;'>
         <span style='font-weight:900; color:#f8fafc; font-size:15px; letter-spacing:1px;'>
@@ -390,37 +386,40 @@ else:
     </div>
     """), unsafe_allow_html=True)
 
-    # --- ESTANTERÍAS DE PRODUCTOS ---
+    # --- ESTANTERÍAS NATIVAS CONTENIDAS (CERO BUGS) ---
     current_items = st.session_state.inventario[st.session_state.current_store]
     cols = st.columns(len(current_items))
 
     for idx, item in enumerate(current_items):
         with cols[idx]:
-            st_val = int(item["stock"])
-            svg_shelf = get_shelf_svg(st_val, st.session_state.current_store, item["nombre"])
+            # Uso de container nativo con borde para evitar desacople visual de botones
+            with st.container(border=True):
+                st_val = int(item["stock"])
+                svg_shelf = get_shelf_svg(st_val, st.session_state.current_store)
 
-            # Tarjeta de producto 100% autocontenida y limpia
-            st.markdown(clean_html(f"""
-            <div style='background: rgba(15, 23, 42, 0.85); border: 1px solid #1e293b; border-radius: 14px; padding: 16px; text-align: center; backdrop-filter: blur(8px);'>
-                <div style='font-size:11px; font-weight:800; color:#818cf8;'>ID #{item['id']}</div>
-                <div style='margin: 10px 0;'>
-                    {svg_shelf}
+                # Header de ID
+                st.markdown(f"<div style='text-align:center; font-size:11px; font-weight:800; color:#818cf8;'>ID #{item['id']}</div>", unsafe_allow_html=True)
+                
+                # Render SVG de Estantería
+                st.markdown(svg_shelf, unsafe_allow_html=True)
+                
+                # Título y % de Stock
+                stock_color = "#ef4444" if st_val < 25 else "#22c55e"
+                st.markdown(clean_html(f"""
+                <div style='text-align:center; margin: 8px 0;'>
+                    <div style='font-weight:800; font-size:13px; color:#f8fafc;'>{item['nombre']}</div>
+                    <div style='font-size:12px; color:#94a3b8; margin-top:2px;'>
+                        STOCK ESTANTE: <strong style='color:{stock_color};'>{st_val}%</strong>
+                    </div>
                 </div>
-                <div style='font-weight:800; font-size:13px; color:#f8fafc;'>{item['nombre']}</div>
-                <div style='font-size:12px; color:#94a3b8; margin-top:4px;'>
-                    STOCK ESTANTE: <strong style='color:{"#ef4444" if st_val < 25 else "#22c55e"};'>{st_val}%</strong>
-                </div>
-            </div>
-            """), unsafe_allow_html=True)
+                """), unsafe_allow_html=True)
 
-            st.markdown("<br>", unsafe_allow_html=True)
+                # Botón integrado perfectamente en el contenedor
+                if st.button("REPONER (+40%)", key=f"btn_repon_{item['id']}"):
+                    item["stock"] = min(100.0, item["stock"] + 40.0)
+                    st.session_state.score += 20
+                    st.rerun()
 
-            # Botón interactivo de reposición
-            if st.button(f"REPONER ESTANTE (+40%)", key=f"btn_repon_{item['id']}"):
-                item["stock"] = min(100.0, item["stock"] + 40.0)
-                st.session_state.score += 20
-                st.rerun()
-
-    # Tasa de refresco fluida de 0.4 segundos
+    # Refresco en tiempo real
     time.sleep(0.4)
     st.rerun()
