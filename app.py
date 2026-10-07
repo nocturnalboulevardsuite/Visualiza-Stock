@@ -10,189 +10,95 @@ except ImportError:
     HAS_OPTION_MENU = False
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA (WIDE + GAME HUD MATE)
+# CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Reponedor Rush HUD - Game Simulator",
+    page_title="Reponedor Rush - Supermarket Simulator HUD",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 # ---------------------------------------------------------
-# GENERADORES SVG VECTORIALES (SIN EMOJIS EN DISEÑO)
+# COMPONENTES VISUALES EN SVG AUTO-CONTENIDOS
 # ---------------------------------------------------------
-def get_box_svg(status="full", store_type="mecánica"):
-    """Genera cajas 3D en SVG mate según tienda y nivel de stock."""
-    # Color base por tipo de tienda
+def render_shelf_boxes_svg(stock_pct, store_type):
+    """Renderiza visualmente cajas apiladas en la estantería según el % de stock."""
+    # Colores según la tienda
     if store_type == "mecánica":
-        base_color = "#2b5c8f" if status == "full" else ("#785327" if status == "medium" else "#8c2828")
-        top_color  = "#3a7bd5" if status == "full" else ("#a87336" if status == "medium" else "#b83b3b")
+        color_full, color_side = "#d97706", "#92400e" # Naranja Mecánico
     elif store_type == "tecnología":
-        base_color = "#276e5a" if status == "full" else ("#785327" if status == "medium" else "#8c2828")
-        top_color  = "#3498db" if status == "full" else ("#a87336" if status == "medium" else "#b83b3b")
+        color_full, color_side = "#2563eb", "#1e40af" # Azul Neón Tech
     else: # carpintería
-        base_color = "#704820" if status == "full" else ("#785327" if status == "medium" else "#8c2828")
-        top_color  = "#a06830" if status == "full" else ("#a87336" if status == "medium" else "#b83b3b")
+        color_full, color_side = "#854d0e", "#533107" # Madera Carpintería
 
-    if status != "empty":
-        return f"""
-        <svg width="100" height="100" viewBox="0 0 100 100" style="filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.5));">
-            <polygon points="50,15 85,32 50,48 15,32" fill="{top_color}"/>
-            <polygon points="15,32 50,48 50,85 15,68" fill="{base_color}"/>
-            <polygon points="50,48 85,32 85,68 50,85" fill="{base_color}" opacity="0.8"/>
-            <polygon points="45,18 55,23 55,83 45,78" fill="#e2e8f0" opacity="0.6"/>
-            <rect x="58" y="52" width="18" height="12" rx="2" fill="#0f172a" opacity="0.7"/>
-        </svg>
-        """
-    else:
-        # Caja Vacía con Alerta Parpadeante Vectorial
+    # Si no hay stock, mostrar estante vacío con icono de alerta
+    if stock_pct <= 0:
         return """
-        <svg width="100" height="100" viewBox="0 0 100 100" style="filter: drop-shadow(0px 0px 15px rgba(245, 101, 101, 0.6));">
-            <polygon points="50,20 85,35 50,50 15,35" fill="#0f0505"/>
-            <polygon points="15,35 50,50 15,40" fill="#742a2a"/>
-            <polygon points="85,35 50,50 85,40" fill="#9b2c2c"/>
-            <polygon points="15,35 50,50 50,85 15,68" fill="#521d1d"/>
-            <polygon points="50,50 85,35 85,68 50,85" fill="#742a2a"/>
-            <polygon points="50,26 58,41 42,41" fill="#f56565"/>
-            <rect x="49.2" y="30" width="1.6" height="6" fill="#1a202c"/>
-            <circle cx="50" cy="38" r="1" fill="#1a202c"/>
+        <svg width="100%" height="110" viewBox="0 0 160 110" style="background: rgba(0,0,0,0.2); border-radius: 8px;">
+            <rect x="10" y="95" width="140" height="8" fill="#334155"/>
+            <text x="80" y="55" font-size="28" text-anchor="middle" fill="#f56565">⚠️</text>
+            <text x="80" y="80" font-size="11" font-weight="bold" text-anchor="middle" fill="#feb2b2">ESTANTE VACÍO</text>
         </svg>
         """
 
-# ---------------------------------------------------------
-# ESTILOS CSS MATE + BANNERS DE ALERTA DE EMERGENCIA
-# ---------------------------------------------------------
-st.markdown("""
-<style>
-    .stApp {
-        background-color: #0b0d12;
-        color: #e2e8f0;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
+    # Determinar cuántas cajas mostrar (de 1 a 4 cajas apiladas)
+    box_count = 1
+    if stock_pct > 75: box_count = 4
+    elif stock_pct > 50: box_count = 3
+    elif stock_pct > 25: box_count = 2
 
-    #MainMenu, header, footer {visibility: hidden;}
+    # Dibujar cajas apiladas en 3D
+    boxes_svg = ""
+    positions = [(20, 50), (85, 50), (52, 20), (85, 20)]
+    for i in range(box_count):
+        x, y = positions[i]
+        boxes_svg += f"""
+        <g transform="translate({x}, {y})">
+            <polygon points="20,5 38,14 20,22 2,14" fill="{color_full}"/>
+            <polygon points="2,14 20,22 20,40 2,32" fill="{color_side}"/>
+            <polygon points="20,22 38,14 38,32 20,40" fill="{color_full}" opacity="0.8"/>
+            <rect x="18" y="8" width="4" height="30" fill="#f8fafc" opacity="0.5"/>
+        </g>
+        """
 
-    /* Botones con animación Burbuja Bounce */
-    div.stButton > button {
-        background: linear-gradient(135deg, #1e2636 0%, #131822 100%);
-        color: #f1f5f9;
-        border: 1px solid #2d3748;
-        border-radius: 12px;
-        padding: 10px 16px;
-        font-weight: 800;
-        font-size: 13px;
-        letter-spacing: 0.5px;
-        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        width: 100%;
-        cursor: pointer;
-        text-transform: uppercase;
-    }
-
-    div.stButton > button:hover {
-        transform: translateY(-3px) scale(1.02);
-        background: linear-gradient(135deg, #313d54 0%, #1e2636 100%);
-        border-color: #6366f1;
-        color: #ffffff;
-        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
-    }
-
-    div.stButton > button:active {
-        transform: translateY(1px) scale(0.97);
-    }
-
-    /* BANNERS DE ALERTA DE EMERGENCIA (30s Countdown) */
-    .emergency-banner {
-        background: linear-gradient(90deg, #742a2a 0%, #9b2c2c 50%, #742a2a 100%);
-        border: 2px solid #f56565;
-        border-radius: 14px;
-        padding: 14px 20px;
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        animation: pulseRed 1s infinite alternate;
-        box-shadow: 0 0 25px rgba(245, 101, 101, 0.4);
-    }
-
-    @keyframes pulseRed {
-        from { box-shadow: 0 0 10px rgba(245, 101, 101, 0.3); }
-        to { box-shadow: 0 0 25px rgba(245, 101, 101, 0.8); }
-    }
-
-    /* Estantería Industrial */
-    .shelf-container {
-        background: linear-gradient(180deg, rgba(20, 26, 38, 0.9) 0%, rgba(11, 13, 18, 0.95) 100%);
-        border: 1px solid #232d3f;
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
-    .box-slot {
-        background: rgba(255,255,255,0.02);
-        border: 1px dashed #2d3748;
-        border-radius: 14px;
-        padding: 14px;
-        text-align: center;
-        min-height: 230px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .hud-stat {
-        background: #151a24;
-        border: 1px solid #232d3f;
-        padding: 12px 18px;
-        border-radius: 12px;
-        text-align: center;
-    }
-
-    .dot-led {
-        height: 10px;
-        width: 10px;
-        border-radius: 50%;
-        display: inline-block;
-        margin-right: 6px;
-    }
-    .dot-green { background: #48bb78; box-shadow: 0 0 8px #48bb78; }
-    .dot-red { background: #f56565; box-shadow: 0 0 8px #f56565; animation: blink 0.8s infinite; }
-
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-</style>
-""", unsafe_allow_html=True)
+    return f"""
+    <svg width="100%" height="110" viewBox="0 0 160 110" style="background: rgba(0,0,0,0.15); border-radius: 8px;">
+        <!-- Tabla del Estante -->
+        <rect x="5" y="92" width="150" height="10" rx="3" fill="#475569"/>
+        <rect x="5" y="98" width="150" height="4" rx="1" fill="#1e293b"/>
+        <!-- Cajas dibujadas -->
+        {boxes_svg}
+    </svg>
+    """
 
 # ---------------------------------------------------------
-# INICIALIZACIÓN DEL ESTADO DEL JUEGO
+# ESTADOS DEL JUEGO
 # ---------------------------------------------------------
 def reset_game():
-    st.session_state.game_state = "PLAYING" # MENU, PLAYING, GAMEOVER, WIN
+    st.session_state.game_state = "PLAYING"
     st.session_state.current_store = "Mecánica"
-    st.session_state.global_timer = 300 # 5 minutos (300s)
+    st.session_state.global_timer = 300 # 5 minutos
     st.session_state.start_time = time.time()
     st.session_state.last_tick = time.time()
-    st.session_state.active_alert = None # {"store": "", "item_name": "", "deadline": 0}
+    st.session_state.active_alert = None
     st.session_state.fail_reason = ""
     st.session_state.score = 0
     
-    # Inventario de las 3 Tiendas
     st.session_state.inventario = {
         "Mecánica": [
-            {"id": 101, "nombre": "Filtros de Aceite", "stock": 90, "max": 100, "speed": 3.5},
-            {"id": 102, "nombre": "Pastillas de Freno", "stock": 70, "max": 100, "speed": 4.0},
-            {"id": 103, "nombre": "Baterías 12V High-Power", "stock": 80, "max": 100, "speed": 2.8},
+            {"id": 101, "nombre": "Filtro de Aceite", "stock": 90, "speed": 3.2},
+            {"id": 102, "nombre": "Pastillas de Freno", "stock": 70, "speed": 4.1},
+            {"id": 103, "nombre": "Batería 12V Pro", "stock": 85, "speed": 2.9},
         ],
         "Tecnología": [
-            {"id": 201, "nombre": "Procesadores & Chipsets", "stock": 85, "max": 100, "speed": 4.5},
-            {"id": 202, "nombre": "Tarjetas Gráficas RTX", "stock": 60, "max": 100, "speed": 5.0},
-            {"id": 203, "nombre": "Monitores Gamer 240Hz", "stock": 75, "max": 100, "speed": 3.2},
+            {"id": 201, "nombre": "Procesador OctaCore", "stock": 80, "speed": 4.5},
+            {"id": 202, "nombre": "Tarjeta Gráfica RTX", "stock": 65, "speed": 5.2},
+            {"id": 203, "nombre": "Monitor Gamer 240Hz", "stock": 75, "speed": 3.4},
         ],
         "Carpintería": [
-            {"id": 301, "nombre": "Juegos de Discos Sierra", "stock": 95, "max": 100, "speed": 3.0},
-            {"id": 302, "nombre": "Taladros Perforadores", "stock": 65, "max": 100, "speed": 4.2},
-            {"id": 303, "nombre": "Cajas de Barniz Mate", "stock": 80, "max": 100, "speed": 3.8},
+            {"id": 301, "nombre": "Disco de Sierra 12 pulgadas", "stock": 95, "speed": 3.0},
+            {"id": 302, "nombre": "Taladro Inalámbrico", "stock": 60, "speed": 4.3},
+            {"id": 303, "nombre": "Barniz Mate Roble", "stock": 80, "speed": 3.7},
         ]
     }
 
@@ -200,33 +106,127 @@ if "game_state" not in st.session_state:
     st.session_state.game_state = "MENU"
 
 # ---------------------------------------------------------
-# PANTALLA 1: MENÚ PRINCIPAL
+# INYECCIÓN DINÁMICA DE ESTILOS Y FONDOS SEGÚN TIENDA
+# ---------------------------------------------------------
+store_bg = "#0b0d12"
+accent_color = "#6366f1"
+
+if st.session_state.get("game_state") == "PLAYING":
+    curr = st.session_state.get("current_store", "Mecánica")
+    if curr == "Mecánica":
+        store_bg = "linear-gradient(135deg, #18110c 0%, #0d0f14 100%)" # Taller Tono Garaje
+        accent_color = "#f97316"
+    elif curr == "Tecnología":
+        store_bg = "linear-gradient(135deg, #091322 0%, #05070c 100%)" # Cyberpunk Neón
+        accent_color = "#06b6d4"
+    else: # Carpintería
+        store_bg = "linear-gradient(135deg, #1c130b 0%, #0c0805 100%)" # Madera Rústica
+        accent_color = "#eab308"
+
+st.markdown(f"""
+<style>
+    .stApp {{
+        background: {store_bg};
+        color: #f8fafc;
+        font-family: 'Inter', system-ui, sans-serif;
+    }}
+
+    #MainMenu, header, footer {{visibility: hidden;}}
+
+    /* Botones Estilo Game / Bounce */
+    div.stButton > button {{
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: #f8fafc;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 800;
+        font-size: 12px;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        width: 100%;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }}
+
+    div.stButton > button:hover {{
+        transform: translateY(-2px) scale(1.02);
+        border-color: {accent_color};
+        color: #ffffff;
+        box-shadow: 0 6px 18px {accent_color}40;
+    }}
+
+    div.stButton > button:active {{
+        transform: translateY(1px) scale(0.98);
+    }}
+
+    /* Banner Alerta Crítica (30s Replica) */
+    .emergency-banner {{
+        background: linear-gradient(90deg, #742a2a 0%, #9b2c2c 50%, #742a2a 100%);
+        border: 2px solid #f56565;
+        border-radius: 12px;
+        padding: 12px 20px;
+        margin-bottom: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 0 20px rgba(245, 101, 101, 0.5);
+        animation: pulseAlert 1s infinite alternate;
+    }}
+
+    @keyframes pulseAlert {{
+        from {{ box-shadow: 0 0 10px rgba(245, 101, 101, 0.3); }}
+        to {{ box-shadow: 0 0 25px rgba(245, 101, 101, 0.8); }}
+    }}
+
+    /* Estanterías */
+    .shelf-card {{
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid #1e293b;
+        border-radius: 14px;
+        padding: 16px;
+        text-align: center;
+        backdrop-filter: blur(8px);
+    }}
+
+    .hud-box {{
+        background: #0f172a;
+        border: 1px solid #1e293b;
+        padding: 10px 16px;
+        border-radius: 10px;
+        text-align: center;
+    }}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# VISTA 1: MENÚ INICIAL
 # ---------------------------------------------------------
 if st.session_state.game_state == "MENU":
     st.markdown("<br><br>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         st.markdown("""
-        <div style='background: #141822; padding: 35px; border-radius: 20px; border: 1px solid #283245; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.6);'>
-            <span style='background:#312e81; color:#c7d2fe; font-size:11px; font-weight:800; padding:4px 10px; border-radius:6px;'>SIMULADOR DE TIEMPO REAL</span>
-            <h1 style='color:#ffffff; margin:12px 0 0 0; font-size:32px; letter-spacing:1px;'>REPONEDOR RUSH 3D</h1>
-            <p style='color:#94a3b8; font-size:14px; margin-top:8px;'>Mantén abastecidas las 3 tiendas antes de que se agote el tiempo global.</p>
-            <hr style='border-color:#263042; margin:20px 0;'>
+        <div style='background: #0f172a; padding: 35px; border-radius: 20px; border: 1px solid #1e293b; text-align: center;'>
+            <span style='background:#312e81; color:#c7d2fe; font-size:11px; font-weight:800; padding:4px 10px; border-radius:6px;'>SIMULADOR DE ALMACÉN</span>
+            <h1 style='color:#ffffff; margin:12px 0 0 0; font-size:30px;'>REPONEDOR RUSH 3D</h1>
+            <p style='color:#94a3b8; font-size:14px; margin-top:6px;'>Estilo Supermarket Simulator</p>
+            <hr style='border-color:#1e293b; margin:20px 0;'>
             <div style='text-align:left; color:#cbd5e1; font-size:13px; line-height:1.7;'>
-                • <strong>3 Sectores:</strong> Mecánica, Tecnología y Carpintería.<br>
-                • <strong>Desgaste en Vivo:</strong> Los clientes consumen stock en todas las tiendas en simultáneo.<br>
-                • <strong>Alertas de Emergencia:</strong> Si una caja llega a 0, tendrás <strong>30 SEGUNDOS DE REPLICA</strong> para ir a esa tienda y reponerla.<br>
-                • <strong>Meta:</strong> Sobrevivir los 5 minutos sin que ninguna alerta venza.
+                • <strong>3 Sectores Inmersivos:</strong> Taller Mecánico, Tienda Tech y Carpintería.<br>
+                • <strong>Venta en Vivo:</strong> Los clientes consumen stock de las 3 tiendas al mismo tiempo.<br>
+                • <strong>Alerta de Emergencia:</strong> Si un estante llega al 0%, tendrás <strong>30 SEGUNDOS</strong> para ir y reponerlo.<br>
+                • <strong>Objetivo:</strong> Sobrevivir el turno de 5 minutos.
             </div>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("INICIAR PARTIDA DE REPONEDOR"):
+        if st.button("COMENZAR TURNO DE REPONEDOR ⚡"):
             reset_game()
             st.rerun()
 
 # ---------------------------------------------------------
-# PANTALLA 2: GAME OVER O VICTORIA
+# VISTA 2: GAME OVER / VICTORIA
 # ---------------------------------------------------------
 elif st.session_state.game_state in ["GAMEOVER", "WIN"]:
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -235,56 +235,52 @@ elif st.session_state.game_state in ["GAMEOVER", "WIN"]:
         if st.session_state.game_state == "GAMEOVER":
             st.markdown(f"""
             <div style='background: #1c1010; padding: 35px; border-radius: 20px; border: 2px solid #f56565; text-align: center;'>
-                <span style='background:#742a2a; color:#fff; font-size:12px; font-weight:900; padding:4px 10px; border-radius:6px;'>GAME OVER</span>
-                <h1 style='color:#f56565; margin:10px 0; font-size:30px;'>TE HAS QUEDADO SIN STOCK</h1>
-                <p style='color:#feb2b2; font-size:14px;'>{st.session_state.fail_reason}</p>
-                <h3 style='color:#fff; margin-top:15px;'>Puntaje Final: {st.session_state.score} pts</h3>
+                <h1 style='color:#f56565; margin:0; font-size:28px;'>TE HAS QUEDADO SIN STOCK</h1>
+                <p style='color:#feb2b2; font-size:14px; margin-top:10px;'>{st.session_state.fail_reason}</p>
+                <h3 style='color:#fff; margin-top:15px;'>Puntaje Final: {st.session_state.score} PTS</h3>
             </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
             <div style='background: #0f291e; padding: 35px; border-radius: 20px; border: 2px solid #48bb78; text-align: center;'>
-                <span style='background:#1c5436; color:#fff; font-size:12px; font-weight:900; padding:4px 10px; border-radius:6px;'>VICTORIA</span>
-                <h1 style='color:#48bb78; margin:10px 0; font-size:30px;'>¡TURNO COMPLETADO CON ÉXITO!</h1>
-                <p style='color:#c6f6d5; font-size:14px;'>Has mantenido abastecidas las 3 tiendas durante los 5 minutos.</p>
-                <h3 style='color:#fff; margin-top:15px;'>Puntaje Final: {st.session_state.score} pts</h3>
+                <h1 style='color:#48bb78; margin:0; font-size:28px;'>¡TURNO COMPLETADO CON ÉXITO!</h1>
+                <p style='color:#c6f6d5; font-size:14px; margin-top:10px;'>Mantuviste reabastecidos los 3 sectores del almacén.</p>
+                <h3 style='color:#fff; margin-top:15px;'>Puntaje Final: {st.session_state.score} PTS</h3>
             </div>
             """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("JUGAR DE NUEVO"):
+        if st.button("JUGAR OTRO TURNO"):
             reset_game()
             st.rerun()
 
 # ---------------------------------------------------------
-# PANTALLA 3: BUCLE PRINCIPAL DEL JUEGO (PLAYING)
+# VISTA 3: BUCLE PRINCIPAL DE JUEGO (PLAYING)
 # ---------------------------------------------------------
 else:
-    # --- BUCLE DE TIEMPO REAL (TICK GAME LOOP) ---
+    # --- BUCLE DE TIEMPO REAL ---
     now = time.time()
     dt = now - st.session_state.last_tick
     st.session_state.last_tick = now
 
-    # 1. Calcular Desgaste de Stock en las 3 Tiendas
+    # 1. Desgaste continuo de productos
     for store_name, items in st.session_state.inventario.items():
         for item in items:
-            # Consumo constante ajustado por velocidad aleatoria corta
             item["stock"] = max(0.0, item["stock"] - (item["speed"] * dt * 1.2))
 
-            # Disparar Alerta de Emergencia si stock llega a 0 y no hay otra activa
+            # Disparar Alerta Crítica
             if item["stock"] == 0 and st.session_state.active_alert is None:
                 st.session_state.active_alert = {
                     "store": store_name,
                     "item_id": item["id"],
                     "item_name": item["nombre"],
-                    "deadline": time.time() + 30.0 # 30 segundos de plazo
+                    "deadline": time.time() + 30.0
                 }
 
-    # 2. Verificar Estado de la Alerta Activa
+    # 2. Control de Alerta Activa
     if st.session_state.active_alert is not None:
         time_left_alert = st.session_state.active_alert["deadline"] - time.time()
         
-        # Si la caja con alerta fue reabastecida (>0), limpiar alerta
         alert_store = st.session_state.active_alert["store"]
         alert_id = st.session_state.active_alert["item_id"]
         target_item = next(x for x in st.session_state.inventario[alert_store] if x["id"] == alert_id)
@@ -292,35 +288,34 @@ else:
         if target_item["stock"] > 0:
             st.session_state.active_alert = None
         elif time_left_alert <= 0:
-            # ¡TIEMPO AGOTADO! GAME OVER
             st.session_state.game_state = "GAMEOVER"
-            st.session_state.fail_reason = f"No reabasteciste '{st.session_state.active_alert['item_name']}' en {alert_store} dentro de los 30s de réplica."
+            st.session_state.fail_reason = f"Se agotó el tiempo de réplica (30s) para reponer '{st.session_state.active_alert['item_name']}' en {alert_store}."
             st.rerun()
 
-    # 3. Verificar Tiempo Global (5 Minutos)
+    # 3. Temporizador Global de 5 Minutos
     elapsed_global = time.time() - st.session_state.start_time
     remaining_global = max(0, st.session_state.global_timer - elapsed_global)
     if remaining_global <= 0:
         st.session_state.game_state = "WIN"
         st.rerun()
 
-    # --- BARRA SUPERIOR HUD (TIEMPO GLOBAL Y PUNTAJE) ---
+    # --- BARRA SUPERIOR HUD ---
     mins = int(remaining_global // 60)
     secs = int(remaining_global % 60)
 
     h1, h2, h3 = st.columns([2, 2, 1])
     with h1:
         st.markdown(f"""
-        <div class='hud-stat'>
-            <span style='color:#94a3b8; font-size:11px; font-weight:800;'>TIEMPO RESTANTE TURNO</span>
-            <div style='font-size:24px; font-weight:900; color:#818cf8;'>{mins:02d}:{secs:02d}</div>
+        <div class='hud-box'>
+            <span style='color:#94a3b8; font-size:11px; font-weight:800;'>TIEMPO RESTANTE</span>
+            <div style='font-size:22px; font-weight:900; color:#818cf8;'>{mins:02d}:{secs:02d}</div>
         </div>
         """, unsafe_allow_html=True)
     with h2:
         st.markdown(f"""
-        <div class='hud-stat'>
-            <span style='color:#94a3b8; font-size:11px; font-weight:800;'>PUNTAJE BODEGA</span>
-            <div style='font-size:24px; font-weight:900; color:#48bb78;'>{st.session_state.score} PTS</div>
+        <div class='hud-box'>
+            <span style='color:#94a3b8; font-size:11px; font-weight:800;'>PUNTAJE REPONEDOR</span>
+            <div style='font-size:22px; font-weight:900; color:#48bb78;'>{st.session_state.score} PTS</div>
         </div>
         """, unsafe_allow_html=True)
     with h3:
@@ -330,28 +325,27 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- BANNER DE ALERTA CRÍTICA (REPLICA 30 SEGUNDOS) ---
+    # --- BANNER DE ALERTA DE EMERGENCIA ---
     if st.session_state.active_alert is not None:
         t_alert = max(0, int(st.session_state.active_alert["deadline"] - time.time()))
         st.markdown(f"""
         <div class='emergency-banner'>
             <div>
-                <span class='dot-led dot-red'></span>
-                <strong style='color:#fff; font-size:15px; letter-spacing:0.5px;'>
-                    ¡ALERTA URGENTE SIN STOCK EN TIENDA {st.session_state.active_alert['store'].upper()}!
+                <strong style='color:#fff; font-size:15px;'>
+                    ⚠️ ¡ALERTA URGENTE EN {st.session_state.active_alert['store'].upper()}!
                 </strong>
-                <div style='color:#fca5a5; font-size:12px; margin-top:2px;'>
-                    Caja afectada: {st.session_state.active_alert['item_name']}
+                <div style='color:#feb2b2; font-size:12px; margin-top:2px;'>
+                    Estante vacío: {st.session_state.active_alert['item_name']}
                 </div>
             </div>
             <div style='text-align:right;'>
                 <span style='font-size:11px; color:#feb2b2; font-weight:800;'>TIEMPO RÉPLICA</span>
-                <div style='font-size:26px; font-weight:900; color:#fff;'>{t_alert}s</div>
+                <div style='font-size:24px; font-weight:900; color:#fff;'>{t_alert}s</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # --- SELECTOR DE TIENDAS / SECTORES ---
+    # --- NAVEGACIÓN ENTRE TIENDAS ---
     if HAS_OPTION_MENU:
         selected = option_menu(
             menu_title=None,
@@ -360,27 +354,27 @@ else:
             default_index=["Mecánica", "Tecnología", "Carpintería"].index(st.session_state.current_store),
             orientation="horizontal",
             styles={
-                "container": {"padding": "0!important", "background-color": "#151a24", "border-radius": "12px"},
+                "container": {"padding": "0!important", "background-color": "#0f172a", "border-radius": "12px"},
                 "nav-link": {"font-size": "13px", "text-align": "center", "color": "#94a3b8", "font-weight": "800", "text-transform": "uppercase"},
-                "nav-link-selected": {"background-color": "#312e81", "color": "#ffffff", "border-radius": "10px"},
+                "nav-link-selected": {"background-color": "#1e1b4b", "color": "#ffffff", "border-radius": "10px"},
             }
         )
         st.session_state.current_store = selected
     else:
-        st.session_state.current_store = st.radio("Selecciona Tienda:", ["Mecánica", "Tecnología", "Carpintería"], horizontal=True)
+        st.session_state.current_store = st.radio("Sector:", ["Mecánica", "Tecnología", "Carpintería"], horizontal=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- ESTANTERÍA DE LA TIENDA ACTUAL ---
+    # --- ENTORNO Y ESTANTERÍAS DE LA TIENDA ACTUAL ---
     current_items = st.session_state.inventario[st.session_state.current_store]
-
+    
     st.markdown(f"""
-    <div class='shelf-container'>
-        <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #232d3f; padding-bottom:10px;'>
-            <span style='font-weight:800; color:#f8fafc; font-size:16px; letter-spacing:0.8px;'>
-                SECTOR DE ESTANTERÍAS: {st.session_state.current_store.upper()}
+    <div style='background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 16px; padding: 20px;'>
+        <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #1e293b; padding-bottom:10px;'>
+            <span style='font-weight:900; color:#f8fafc; font-size:16px; letter-spacing:1px;'>
+                SECTOR ACTUAL: {st.session_state.current_store.upper()}
             </span>
-            <span style='font-size:12px; color:#818cf8; font-weight:700;'>3 RANURAS ACTIVAS</span>
+            <span style='font-size:12px; color:#818cf8; font-weight:700;'>3 ESTANTES ACTIVOS</span>
         </div>
     """, unsafe_allow_html=True)
 
@@ -388,38 +382,33 @@ else:
 
     for idx, item in enumerate(current_items):
         with cols[idx]:
-            # Estado del stock
             st_val = int(item["stock"])
-            if st_val == 0:
-                status = "empty"
-            elif st_val <= 35:
-                status = "medium"
-            else:
-                status = "full"
+            svg_shelf = render_shelf_boxes_svg(st_val, st.session_state.current_store.lower())
 
-            box_svg = get_box_svg(status, st.session_state.current_store.lower())
-
+            # Cada tarjeta de producto es auto-contenida (sin HTML roto)
             st.markdown(f"""
-            <div class='box-slot'>
+            <div class='shelf-card'>
                 <div style='font-size:11px; font-weight:800; color:#818cf8;'>ID #{item['id']}</div>
-                <div style='height:85px; display:flex; align-items:center; justify-content:center;'>
-                    {box_svg}
+                <div style='margin: 10px 0;'>
+                    {svg_shelf}
                 </div>
-                <div style='font-weight:800; font-size:13px; color:#f8fafc;'>{item['nombre']}</div>
-                <div style='font-size:12px; color:#94a3b8;'>
-                    NIVEL: <strong style='color:{"#f56565" if st_val < 20 else "#48bb78"};'>{st_val}%</strong>
+                <div style='font-weight:800; font-size:14px; color:#f8fafc; margin-top:6px;'>{item['nombre']}</div>
+                <div style='font-size:12px; color:#94a3b8; margin-top:4px;'>
+                    STOCK ESTANTE: <strong style='color:{"#f56565" if st_val < 25 else "#48bb78"};'>{st_val}%</strong>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-            # Botón interactivo de Reposición
-            if st.button(f"REPONER (+50%)", key=f"btn_repon_{item['id']}"):
-                item["stock"] = min(100.0, item["stock"] + 50.0)
-                st.session_state.score += 25
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # Botón de acción para reponer el producto
+            if st.button(f"REPONER ESTANTE (+40%)", key=f"btn_repon_{item['id']}"):
+                item["stock"] = min(100.0, item["stock"] + 40.0)
+                st.session_state.score += 20
                 st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Rerun automático del bucle de juego cada 0.5 segundos
-    time.sleep(0.5)
+    # Actualización automática fluida
+    time.sleep(0.4)
     st.rerun()
